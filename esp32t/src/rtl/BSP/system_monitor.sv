@@ -1,5 +1,11 @@
 // system_monitor.v
 
+// Note for conversion between raw ADC values and actual volts:
+// According to the MCU fpga_rx.c the voltage for a raw value 'a' is
+//   V(a) = (10+2.2) * (a/2048)/2.2 - 0.1
+// Therefore the raw value for a voltage V is
+//   g(V) = (V + 0.1)*2.2/(10+2.2) * 2048
+
 module system_monitor(
     input               clk,
     input               reset,
@@ -175,13 +181,13 @@ module system_monitor(
             end
 
             if (volt >= 700) begin // ~1.8V
-               if (~lowpowerBacklight && ~bat_is_LI && volt < 979) begin // below 2.55 V
+               if (~lowpowerBacklight && ~bat_is_LI && volt < 1219) begin // below 3.2 V
                   request_SystemStatusExtended <= 1'b1;
                   lowpowerBacklight            <= 1'b1;
                   lowerpowerOldBL              <= brightness;
                end
 
-               if (lowpowerBacklight && ~bat_is_LI && volt > 1293) begin // above 3.4 V
+               if (lowpowerBacklight && ~bat_is_LI && volt > 1308) begin // above 3.44 V
                   request_SystemStatusExtended <= 1'b1;
                   lowpowerBacklight            <= 1'b0;
                   brightness                   <= lowerpowerOldBL;
@@ -286,8 +292,8 @@ module system_monitor(
    reg        transmitVolt;
 
    wire [13:0] VOLTAGE_FULL   = bat_is_LI ? 14'd1423 : 14'd1367; //  3.75V LI : 3.6V AA
-   wire [13:0] VOLTAGE_CRIT   = bat_is_LI ? 14'd1145 : 14'd997;  //  3.0V  LI : 2.6V AA
-   wire [13:0] VOLTAGE_RED    = bat_is_LI ? 14'd1182 : 14'd1071; //  3.1V  LI : 2.8V AA
+   wire [13:0] VOLTAGE_CRIT   = bat_is_LI ? 14'd1145 : 14'd1108; //  3.0V  LI : 2.9V AA
+   wire [13:0] VOLTAGE_RED    = bat_is_LI ? 14'd1182 : 14'd1252; //  3.1V  LI : 3.29V AA
 
    reg blink;
 
