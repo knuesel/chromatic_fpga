@@ -81,7 +81,7 @@ module system_monitor(
     reg btnB_r2;
 
     reg pressed;
-    reg [3:0] brightness = 4'd3;
+    reg [3:0] brightness = 4'd7;
     reg [1:0] blockBrightnessReceive;
 
     reg request_buttons  = 1'b0;
@@ -245,6 +245,16 @@ module system_monitor(
         end
     end
 
+    // Non-linear brightness curve to match human perception according to
+    // Steven's power law. The desired screen intensity is computed as
+    // I = (b/15)^2.2 * 240 where b is the brightness level in 0..15
+    // (giving a max value of 240 which matches the max of 15*16=240 in the
+    // linear scale used previously; also using 255 instead of 240 causes
+    // issues with the flashing of the MCU, though 254 seems to be fine).
+    reg [7:0] pwm_lut [0:15] = '{
+        0, 1, 3, 7, 13, 21, 32, 45, 60, 78, 98, 121, 147, 175, 206, 240
+    };
+
     reg [7:0] lcdcount;
     always@(posedge clk)
         if(lcdcount < 448)
@@ -252,7 +262,7 @@ module system_monitor(
         else
             lcdcount <= 'd0;
 
-    assign LCD_PWM = LCD_INIT_DONE&LCD_BACKLIGHT_INIT ? (lcdcount <= {brightness[3:0], 4'd0}) : 1'd0;
+    assign LCD_PWM = LCD_INIT_DONE&LCD_BACKLIGHT_INIT ? (lcdcount <= pwm_lut[brightness]) : 1'd0;
 
 
     // 8.388608Mhz clock -> ~119.2ns
